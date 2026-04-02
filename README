@@ -1,15 +1,11 @@
-ex21: Geodesic Sphere
+# Homework 10: Tessellation Shader
 
-Willem A. (Vlakkies) Schreuder
+Sage Ebert
 CSCI4239/5239 Spring 2026
 
 This program requires OpenGL 4.0 or above
 
-Demonstrate a tesselation shader by drawing a sphere
-from an icosahedron.
-
-Based on The Little Grashopper tutorial
-http://prideout.net/blog/?p=48
+This week I wanted to try tessellation shaders and build on my lava from the normal mapping homework. I had wanted to do some vert displacement for that program, but decided to wait until this one to make my life easier and not need to hardcode a higher-poly cube in. Translating my version 1.2 lava shaders into 4.0 was a bit frustrating, I think I need more practice with the in/out situation when using more than just vert/frag shaders and how to pipe things through each stage properly, but I got it eventually and this tirned out pretty satisfying! It's cool to see something I had originally put together as a 2D texture with normal mapping have actual displacement. Nothing super crazy or in-depth this week though, I would've liked to add a compute shader as well just to try out but I ran out of time. I spent about 6 hours on this homework.
 
 
 Key bindings

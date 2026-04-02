@@ -1,4 +1,4 @@
-//  Geodesic Vertex Shader
+//  lava Vertex Shader
 #version 400
 
 //  Coordinates in and out

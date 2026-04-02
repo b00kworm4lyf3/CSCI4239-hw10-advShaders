@@ -1,5 +1,5 @@
-# Example 21
-EXE=ex21
+# Homework 10
+EXE=hw10
 
 # Main target
 all: $(EXE)
@@ -25,7 +25,7 @@ endif
 
 # Dependencies
 CSCIx239.h: mat4.h
-ex21.o: ex21.c CSCIx239.h
+hw10.o: hw10.c CSCIx239.h
 fatal.o: fatal.c CSCIx239.h
 errcheck.o: errcheck.c CSCIx239.h
 print.o: print.c CSCIx239.h
@@ -59,7 +59,7 @@ CSCIx239.a:fatal.o errcheck.o print.o axes.o loadtexbmp.o loadobj.o projection.o
 	g++ -c $(CFLG)  $<
 
 #  Link
-ex21:ex21.o   CSCIx239.a
+hw10:hw10.o   CSCIx239.a
 	gcc $(CFLG) -o $@ $^  $(LIBS)
 
 #  Clean

@@ -1,0 +1,51 @@
+//  lava Tesselation Evalution Shader
+
+#version 400
+
+//  Equilateral triangles in (CW order)
+layout(triangles, equal_spacing, cw) in;
+//  Modelview and projection matrices
+uniform mat4 Projection;
+uniform mat4 Modelview;
+
+//textures
+uniform sampler2D tex;
+uniform sampler2D noise1;
+uniform sampler2D noise2;
+
+//  Coordinates in and out
+in  vec3 tcPosition[];
+out vec3 tePosition;
+out vec3 tePatchDistance;
+out vec2 teUv;
+
+float mixNoise(vec2 uv){ //for displacement amt
+   vec4 vorSamp = texture(tex, uv);
+   vec4 perlSamp = texture(noise1, uv*0.3); //noise zoomed in
+
+   //combine perlin and voronoi to make terrain
+   vec4 terr = mix(vorSamp, perlSamp, 0.5);
+
+   //blend factor and finally mix between terrain and flat
+   float blend = smoothstep(0.4, 0.7, vorSamp.r);
+   return mix(terr, vec4(0.7, 0.7, 0.7, 1.0), blend).r;
+}
+
+void main()
+{
+   //  Distance to edge of patch for interpolation
+   tePatchDistance = gl_TessCoord;
+   //  Calculate vertex as weighted average
+   vec3 p = (gl_TessCoord.x * tcPosition[0]
+          +  gl_TessCoord.y * tcPosition[1]
+          +  gl_TessCoord.z * tcPosition[2]);
+
+   teUv = (p.xz*0.25) + 0.5; //from -2-2 to 0-1
+   float disp = mixNoise(teUv);
+
+   //move p up based on sample intensity and set pos
+   p.y = p.y - disp*1.0;
+   tePosition = p;
+   //  Project vertex
+   gl_Position = Projection * Modelview * vec4(tePosition, 1);
+}

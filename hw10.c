@@ -1,12 +1,5 @@
 /*
- *  Geodesic Sphere
- *  This program requires OpenGL 4.0 or above
- *
- *  Demonstrate a tesselation shader by drawing a sphere
- *  from an icosahedron.
- *
- *  Based on The Little Grashopper tutorial
- *  http://prideout.net/blog/?p=48
+ *  Homework 10: Tessellation Shader
  *
  *  Key bindings:
  *  +/-        Increase/decrease inner and outer
@@ -19,31 +12,32 @@
  *  ESC        Exit
  */
 #include "CSCIx239.h"
-int th=0;         //  Azimuth of view angle
-int ph=0;         //  Elevation of view angle
+int th=25;         //  Azimuth of view angle
+int ph=30;         //  Elevation of view angle
 int zh=0;         //  Light angle
 int shader=0;     //  Shader
 int N;            //  Number of faces
-int Inner=3;      //  Tesselation inner level
-int Outer=2;      //  Tesselation outer level
-int move=1;       //  Move light
+int Inner=13;      //  Tesselation inner level
+int Outer=12;      //  Tesselation outer level
 float asp=1;      //  Screen aspect ratio
 float dim=2;      //  World dimension
 float elv=-10;    //  Light elevation
-unsigned int vao; //  Icosahedron VAO
+unsigned int vao; //  plane VAO
+int tex,nml, lava1, lava1Norm, lava2;   //textures
 
 //
 //  Refresh display
 //
 void display(GLFWwindow* window)
 {
-   //  Orthogonal projection matrix
    float project[16];
    mat4identity(project);
-   mat4ortho(project , -dim*asp, +dim*asp, -dim, +dim, -dim, +dim);
+   mat4perspective(project, 57, asp, 0.1, 6*dim);
+   //mat4ortho(project , -dim*asp, +dim*asp, -dim, +dim, -dim, +dim);
    //  Modelview matrix
    float modelview[16];
    mat4identity(modelview);
+   mat4translate(modelview, 0, 0, -3.0*dim);
    mat4rotate(modelview , ph,1,0,0);
    mat4rotate(modelview , th,0,1,0);
    //  Normal matrix
@@ -71,9 +65,30 @@ void display(GLFWwindow* window)
    id = glGetUniformLocation(shader,"Outer");
    glUniform1f(id,Outer);
 
+   //time and textures for colour and disp
+   float t = (float)glfwGetTime();
+   glUniform1f(glGetUniformLocation(shader,"time"), t);
+   glActiveTexture(GL_TEXTURE0);
+   glBindTexture(GL_TEXTURE_2D,tex);
+   glUniform1i(glGetUniformLocation(shader,"tex"),0);
+   glActiveTexture(GL_TEXTURE1);
+   glBindTexture(GL_TEXTURE_2D,nml);
+   glUniform1i(glGetUniformLocation(shader,"nml"),1);
+   glUniform1i(glGetUniformLocation(shader,"terr"),2);
+   glUniform1i(glGetUniformLocation(shader,"lava"),3);
+   glActiveTexture(GL_TEXTURE4);
+   glBindTexture(GL_TEXTURE_2D,lava1);
+   glUniform1i(glGetUniformLocation(shader,"noise1"),4);
+   glActiveTexture(GL_TEXTURE5);
+   glBindTexture(GL_TEXTURE_2D,lava1Norm);
+   glUniform1i(glGetUniformLocation(shader,"noise1Norm"),5);
+   glActiveTexture(GL_TEXTURE6);
+   glBindTexture(GL_TEXTURE_2D,lava2);
+   glUniform1i(glGetUniformLocation(shader,"noise2"),6);
+
    // Render the scene
    glEnable(GL_DEPTH_TEST);
-   glEnable(GL_CULL_FACE);
+   //glEnable(GL_CULL_FACE);
    glClearColor(0.2,0.2,0.2,1.0);
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
    glPatchParameteri(GL_PATCH_VERTICES,3);
@@ -115,9 +130,6 @@ void key(GLFWwindow* window,int key,int scancode,int action,int mods)
    //  Reset view angle
    else if (key == GLFW_KEY_0)
       th = ph = 0;
-   //  Toggle movement
-   else if (key == GLFW_KEY_S)
-      move = 1-move;
    //  Move light
    else if (key == GLFW_KEY_LEFT_BRACKET && !shift)
       zh += 5;
@@ -131,8 +143,8 @@ void key(GLFWwindow* window,int key,int scancode,int action,int mods)
    //  Reset levels
    else if (key == GLFW_KEY_R)
    {
-      Inner = 3;
-      Outer = 2;
+      Inner = 13;
+      Outer = 12;
    }
    //  Both levels
    else if (key==GLFW_KEY_KP_ADD || key==GLFW_KEY_EQUAL)
@@ -164,6 +176,13 @@ void key(GLFWwindow* window,int key,int scancode,int action,int mods)
    else if (key == GLFW_KEY_DOWN)
       ph -= 5;
 
+   //  PageUp key - increase dim
+   else if (key==GLFW_KEY_PAGE_DOWN)
+      dim += 0.1;
+   //  PageDown key - decrease dim
+   else if (key==GLFW_KEY_PAGE_UP && dim>1)
+      dim -= 0.1;
+
    //  Limit tessalation level
    if (Inner<1) Inner = 1;
    if (Outer<1) Outer = 1;
@@ -193,11 +212,11 @@ int CreateShaderProgTess(void)
    //  Create program
    int prog = glCreateProgram();
    //  Compile shaders
-   CreateShader(prog,GL_VERTEX_SHADER         ,"geodesic.vert");
-   CreateShader(prog,GL_TESS_CONTROL_SHADER   ,"geodesic.tcs");
-   CreateShader(prog,GL_TESS_EVALUATION_SHADER,"geodesic.tes");
-   CreateShader(prog,GL_GEOMETRY_SHADER       ,"geodesic.geom");
-   CreateShader(prog,GL_FRAGMENT_SHADER       ,"geodesic.frag");
+   CreateShader(prog,GL_VERTEX_SHADER         ,"lava.vert");
+   CreateShader(prog,GL_TESS_CONTROL_SHADER   ,"lava.tcs");
+   CreateShader(prog,GL_TESS_EVALUATION_SHADER,"lava.tes");
+   CreateShader(prog,GL_GEOMETRY_SHADER       ,"lava.geom");
+   CreateShader(prog,GL_FRAGMENT_SHADER       ,"lava.frag");
    //  Link program
    glLinkProgram(prog);
    //  Check for errors
@@ -207,34 +226,22 @@ int CreateShaderProgTess(void)
 }
 
 //
-//  Icosahedron data
-//    We don't need normals because we known this is an inscribed
-//    icosahedron so the normals are the same as for a sphere.
+//  plane data xD
+//   will just calculate texture coords from verts
 //
-static void CreateIcosahedron()
+static void CreatePlane()
 {
    unsigned int verts,faces;
    const int Faces[] =
-      {
-       2,1,0,    3,2,0,    4,3,0,    5, 4, 0,    1, 5, 0,
-      11,6,7,   11,7,8,   11,8,9,   11, 9,10,   11,10, 6,
-       1,2,6,    2,3,7,    3,4,8,    4, 5, 9,    5, 1,10,
-       2,7,6,    3,8,7,    4,9,8,    5,10, 9,    1, 6,10
+      {0, 1, 2,
+       2, 3, 0
       };
    const float Verts[] =
       {
-       0.000, 0.000, 1.000,
-       0.894, 0.000, 0.447,
-       0.276, 0.851, 0.447,
-      -0.724, 0.526, 0.447,
-      -0.724,-0.526, 0.447,
-       0.276,-0.851, 0.447,
-       0.724, 0.526,-0.447,
-      -0.276, 0.851,-0.447,
-      -0.894, 0.000,-0.447,
-      -0.276,-0.851,-0.447,
-       0.724,-0.526,-0.447,
-       0.000, 0.000,-1.000
+       -2.000, 0.000, -2.000,
+       2.000, 0.000, -2.000,
+       2.000, 0.000, 2.000,
+       -2.000, 0.000,2.000
       };
    N = sizeof(Faces)/sizeof(int);
 
@@ -268,11 +275,63 @@ static void CreateIcosahedron()
 int main(int argc,char* argv[])
 {
    //  Initialize GLFW
-   GLFWwindow* window = InitWindow("Geodesic Tessalation Shader",1,600,600,&reshape,&key);
+   GLFWwindow* window = InitWindow("Sage Ebert - Homework 10: Tessalation Shader",1,600,600,&reshape,&key);
 
    //  Shader program
    shader = CreateShaderProgTess();
-   CreateIcosahedron();
+   CreatePlane();
+
+   //load textures
+   tex = LoadTexBMP("terrain.bmp");
+   nml = LoadTexBMP("terrainNorm.bmp");
+   lava1 = LoadTexBMP("lava1.bmp");
+   lava1Norm = LoadTexBMP("lava1Norm.bmp");
+   lava2 = LoadTexBMP("lava2.bmp");
+
+   //build colour ramps
+   unsigned char terrRamp[] = {
+      10,  5,  3, 255,   // darkest - near black with slight warmth
+      25, 12,  8, 255,
+      45, 20, 12, 255,
+      65, 30, 15, 255,
+      90, 40, 18, 255,
+      120, 55, 22, 255,
+      160, 75, 25, 255,
+      200, 100, 30, 255   // brightest - dim orange glow at lava edge
+   };
+
+   unsigned int terrTex;
+
+   glActiveTexture(GL_TEXTURE2);
+   glGenTextures(1,&terrTex);
+   glBindTexture(GL_TEXTURE_2D,terrTex);
+   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 8, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, terrRamp);
+   glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+   glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+   unsigned char lavaRamp[] = {
+      130, 20,  5, 255,   // darkest - deep red
+      180, 40,  5, 255,
+      210, 60, 10, 255,
+      230, 90, 10, 255,
+      240, 130, 15, 255,
+      250, 170, 30, 255,
+      255, 210, 60, 255,
+      255, 245, 130, 255  // brightest - hot yellow-white
+   };
+
+   unsigned int lavaTex;
+
+   glActiveTexture(GL_TEXTURE3);
+   glGenTextures(1,&lavaTex);
+   glBindTexture(GL_TEXTURE_2D,lavaTex);
+   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 8, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, lavaRamp);
+   glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+   glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
    //  Event loop
    ErrCheck("init");
